@@ -9,6 +9,19 @@
 
 ## セットアップ手順
 
+### 0. Homebrewのインストール
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Apple Silicon Macの場合、インストール後にPATHを通す必要がある：
+
+```bash
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"
+```
+
 ### 1. Nixのインストール
 
 ```bash
@@ -26,7 +39,7 @@ nix-shell '<home-manager>' -A install
 ### 3. このリポジトリをclone
 
 ```bash
-git clone git@github.com:<ユーザー名>/dotfiles.git ~/dotfiles
+git clone git@github.com:ookuni-asset/dotfiles.git ~/dotfiles
 ```
 
 ### 4. シンボリックリンクを張る
@@ -41,11 +54,28 @@ ln -sf ~/dotfiles/home.nix ~/.config/home-manager/home.nix
 home-manager switch
 ```
 
+## Homebrewの管理（Brewfile）
+
+GUIアプリはHomebrewで管理し、Brewfileをdotfilesで管理する。
+
+### 現在の環境からBrewfileを生成
+
+```bash
+brew bundle dump --file=~/dotfiles/Brewfile
+```
+
+### 新しいMacで復元する場合
+
+```bash
+brew bundle install --file=~/dotfiles/Brewfile
+```
+
 ## 管理しているもの
 
 | ファイル | 内容 |
 |---|---|
 | `home.nix` | インストールパッケージ・Emacs設定・init.el |
+| `Brewfile` | HomebrewのGUIアプリ |
 
 ## パッケージを追加したいとき
 
