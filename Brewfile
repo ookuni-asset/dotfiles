@@ -1,6 +1,7 @@
 brew "direnv"
 cask "1password"
 cask "aqua-voice"
+cask "blackhole-2ch"
 cask "claude"
 cask "cmux"
 cask "cursor"
