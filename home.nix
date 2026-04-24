@@ -34,6 +34,11 @@
     tig
   ];
 
+  home.file.".tigrc".text = ''
+    set vertical-split = no
+  '';
+
+
   programs.emacs = {
     enable = true;
     extraPackages = epkgs: [
