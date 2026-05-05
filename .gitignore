@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Nix
+result
+result-*
+
+# direnv
+.direnv/
+.envrc.local
+
+# Claude Code (ローカル専用設定)
+.claude/settings.local.json
