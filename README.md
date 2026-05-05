@@ -39,14 +39,18 @@ nix-shell '<home-manager>' -A install
 ### 3. このリポジトリをclone
 
 ```bash
-git clone git@github.com:ookuni-asset/dotfiles.git ~/dotfiles
+git clone https://github.com/ookuni-asset/dotfiles.git ~/dotfiles
 ```
+
+> 他の人が利用する場合は、自分のフォーク先URLに置き換えてください。
 
 ### 4. シンボリックリンクを張る
 
 ```bash
 ln -sf ~/dotfiles/home.nix ~/.config/home-manager/home.nix
 ```
+
+> `home.nix` 内の `home.username` と `home.homeDirectory` は環境に合わせて書き換えてください (デフォルトは `ty` / `/Users/ty`)。
 
 ### 5. 適用
 
