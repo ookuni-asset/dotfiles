@@ -1,5 +1,8 @@
 # dotfiles
 
+![License](https://img.shields.io/github/license/ookuni-asset/dotfiles)
+![Nix](https://img.shields.io/badge/built%20with-Nix-5277C3?logo=nixos&logoColor=white)
+
 ## 環境
 
 - macOS (Apple Silicon)
