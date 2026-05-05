@@ -18,20 +18,21 @@
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = with pkgs; [
-    awscli2
-    bat
-#    emacs
-    eza
-    fd
-    fzf
-    gh
-    nodejs
-    ripgrep
-    tree
-    uv
-    wget
-    zoxide
-    tig
+    awscli2  # AWS CLIツール。S3やEC2などAWSサービスをターミナルから操作する
+    bat      # catコマンドの強化版。シンタックスハイライトと行番号表示つき
+#    emacs   # カスタマイズした状態でインストールするためにprograms.emacsで設定
+    eza      # lsコマンドの強化版。色分け表示やgitステータス表示に対応
+    fd       # findコマンドの高速版。シンプルな構文でファイル検索ができる
+    fzf      # ファジーファインダー。コマンド履歴やファイルをインタラクティブに絞り込む
+    gh       # GitHub CLI。PRの作成やIssueの管理をターミナルから行う
+    glow     # ターミナル上でMarkdownをレンダリングしてプレビューする
+    nodejs   # JavaScriptのランタイム。npm/npxも含む
+    ripgrep  # grepコマンドの高速版。.gitignoreを自動で尊重してくれる
+    tig      # gitのTUIフロントエンド。ログやdiffをターミナル上でビジュアルに確認する
+    tree     # ディレクトリ構造をツリー形式で表示する
+    uv       # Pythonのパッケージ・仮想環境マネージャー。pipより大幅に高速
+    wget     # URLを指定してファイルをダウンロードする
+    zoxide   # cdコマンドの強化版。過去の移動履歴から頻度の高いディレクトリにジャンプできる
   ];
 
   home.file.".tigrc".text = ''
