@@ -26,6 +26,7 @@
     fzf      # ファジーファインダー。コマンド履歴やファイルをインタラクティブに絞り込む
     gh       # GitHub CLI。PRの作成やIssueの管理をターミナルから行う
     glow     # ターミナル上でMarkdownをレンダリングしてプレビューする
+    nkf      # 文字コード変換ツール。Shift_JISやEUC-JPなど日本語の文字コードを判定・変換する
     nodejs   # JavaScriptのランタイム。npm/npxも含む
     ripgrep  # grepコマンドの高速版。.gitignoreを自動で尊重してくれる
     tig      # gitのTUIフロントエンド。ログやdiffをターミナル上でビジュアルに確認する
@@ -48,6 +49,13 @@
       epkgs.catppuccin-theme # cmuxで使っているテーマ、Catppuccin Mochaに合わせる
     ];
   };
+
+  home.file.".emacs.d/early-init.el".text = ''
+    ;; Superset等一部の端末で、起動時のDA/背景色問い合わせへの応答が
+    ;; ファイルバッファの先頭に誤挿入される問題を回避するため、
+    ;; ターミナル機能の自動検出（エスケープシーケンス問い合わせ）を無効化する
+    (setq xterm-extra-capabilities nil)
+  '';
 
   home.file.".emacs.d/init.el".text = ''
     ;; C-h を Backspace に変更
