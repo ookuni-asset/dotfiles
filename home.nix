@@ -15,6 +15,11 @@
   # release notes.
   home.stateVersion = "25.11"; # Please read the comment before changing.
 
+  # Determinate NixがnixpkgsをFlakeHubのrolling channelに向けているため、
+  # home-manager本体のバージョンと実際のnixpkgsバージョンが常にズレて見えて
+  # 警告が出る。実害はないため抑制する。
+  home.enableNixpkgsReleaseCheck = false;
+
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = with pkgs; [
@@ -29,6 +34,7 @@
     nkf      # 文字コード変換ツール。Shift_JISやEUC-JPなど日本語の文字コードを判定・変換する
     nodejs   # JavaScriptのランタイム。npm/npxも含む
     ripgrep  # grepコマンドの高速版。.gitignoreを自動で尊重してくれる
+    rustup   # Rustツールチェーンのバージョンマネージャー。uvのPython版に相当
     tig      # gitのTUIフロントエンド。ログやdiffをターミナル上でビジュアルに確認する
     tree     # ディレクトリ構造をツリー形式で表示する
     uv       # Pythonのパッケージ・仮想環境マネージャー。pipより大幅に高速
@@ -46,7 +52,12 @@
     extraPackages = epkgs: [
       epkgs.nix-mode
       epkgs.markdown-mode
+      epkgs.rust-mode
       epkgs.catppuccin-theme # cmuxで使っているテーマ、Catppuccin Mochaに合わせる
+      epkgs.corfu           # 補完ポップアップUI
+      epkgs.corfu-terminal  # ターミナルEmacsでcorfuのポップアップを表示するために必要
+      epkgs.orderless       # あいまい一致の補完スタイル
+      epkgs.cape            # 補完ソース追加(ファイルパス等)
     ];
   };
 
@@ -70,6 +81,34 @@
     (set-face-attribute 'default nil
                         :family "JetBrainsMono Nerd Font"
                         :height 140)
+
+    ;; Rust: rust-mode + eglot(Emacs29+標準LSPクライアント)
+    ;; rustup でインストールした rust-analyzer にPATHが通っていれば
+    ;; eglot が自動で認識するため追加設定は不要。
+    (require 'rust-mode)
+    (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
+    (add-hook 'rust-mode-hook 'eglot-ensure)
+    (setq rust-format-on-save t)
+
+    ;; 補完UI: corfu(ポップアップ) + orderless(あいまい一致) + cape(補完ソース追加)
+    (require 'orderless)
+    (setq completion-styles '(orderless basic)
+          completion-category-defaults nil
+          completion-category-overrides '((file (styles partial-completion))))
+
+    (require 'corfu)
+    (global-corfu-mode)
+    (setq corfu-auto t
+          corfu-auto-delay 0.1
+          corfu-auto-prefix 1)
+
+    ;; ターミナルEmacs(emacs -nw)ではcorfuのポップアップがGUIの子フレームに
+    ;; 依存するため、corfu-terminal-modeを有効化しないと表示されない
+    (require 'corfu-terminal)
+    (corfu-terminal-mode +1)
+
+    (require 'cape)
+    (add-to-list 'completion-at-point-functions #'cape-file)
   '';
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
