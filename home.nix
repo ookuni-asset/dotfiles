@@ -190,6 +190,15 @@
   home.file.".emacs.d/init.el".text = ''
     ;; C-h を Backspace に変更
     (global-set-key (kbd "C-h") 'delete-backward-char)
+
+    ;; rust-study のように、トップレベルにworkspace用Cargo.tomlを置かず
+    ;; 独立した複数crateがサブディレクトリに散らばっているリポジトリでは、
+    ;; project.elのデフォルト(VCルート=.gitのある場所)のままだとeglotが
+    ;; リポジトリ全体を1プロジェクトとして扱ってしまい、rust-analyzerが
+    ;; 一部のcrate(Cargo.toml)しか検出しないことがある。
+    ;; Cargo.tomlがあるディレクトリ自体をプロジェクト境界として認識させ、
+    ;; crateごとに正しくスコープされたrust-analyzerが起動するようにする。
+    (setq project-vc-extra-root-markers '("Cargo.toml"))
   
     ;; Catppuccin Mocha テーマ
     (load-theme 'catppuccin :no-confirm)
