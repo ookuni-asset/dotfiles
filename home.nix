@@ -46,6 +46,38 @@
     set vertical-split = no
   '';
 
+  home.file.".zshrc".text = ''
+    eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+    eval "$(direnv hook zsh)"
+    eval "$(fzf --zsh)"
+    eval "$(zoxide init zsh)"
+
+    alias ll='eza -la --git'
+    alias emacs='emacs -nw'
+
+    # uv
+    export PATH="/Users/ty/.local/bin:$PATH"
+
+    # rust-study: cargo/rustcをNixビルドのコンテナ(Rustツールチェーンのみ)内で実行する。
+    # 編集(Emacs/eglot/補完)はローカルのrustup/rust-analyzerで行い、
+    # ビルド・実行だけコンテナに委譲する。globalの`cargo`は上書きしない。
+    # `-C <path>` でカレントディレクトリ以外のプロジェクトも指定できる
+    # (cargo本家の`-C`と同じ感覚で使える。未指定時は$PWDを使う)。
+    # 詳細: rust-study/notes/07-dev-environment.md
+    cargo-box() {
+      local project_dir="$PWD"
+      if [ "$1" = "-C" ]; then
+        project_dir="$(cd "$2" 2>/dev/null && pwd)"
+        if [ -z "$project_dir" ]; then
+          echo "cargo-box: no such directory: $2" >&2
+          return 1
+        fi
+        shift 2
+      fi
+      docker run --rm -it -v "$project_dir":/workspace -w /workspace cargo-box:latest cargo "$@"
+    }
+  '';
+
 
   programs.emacs = {
     enable = true;
