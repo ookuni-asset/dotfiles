@@ -81,8 +81,14 @@ brew bundle install --file=~/dotfiles/Brewfile
 
 | ファイル | 内容 |
 |---|---|
-| `home.nix` | インストールパッケージ・Emacs設定・init.el |
+| `home.nix` | インストールパッケージ・Emacs設定・init.el・Karabiner-Elementsのルール定義 |
 | `Brewfile` | HomebrewのGUIアプリ |
+
+### Karabiner-Elementsのルール
+
+`home.nix`は`~/.config/karabiner/assets/complex_modifications/`配下にルール定義(JSON)だけを配置する。`~/.config/karabiner/karabiner.json`本体はKarabiner-Elements自身が実行時に書き換える状態ファイルを兼ねるため、Nixでは管理しない。
+
+新しいMacでは、`home-manager switch`適用後にKarabiner-Elementsの Preferences → Complex Modifications → Add rule で該当ルールを一度だけ手動で有効化する。
 
 ## パッケージを追加したいとき
 

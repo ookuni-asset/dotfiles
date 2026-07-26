@@ -24,7 +24,7 @@
   # environment.
   home.packages = with pkgs; [
     awscli2  # AWS CLIツール。S3やEC2などAWSサービスをターミナルから操作する
-    bat      # catコマンドの強化版。シンタックスハイライトと行番号表示つき
+#    bat      # catコマンドの強化版。シンタックスハイライトと行番号表示つき
 #    emacs   # カスタマイズした状態でインストールするためにprograms.emacsで設定
     eza      # lsコマンドの強化版。色分け表示やgitステータス表示に対応
     fd       # findコマンドの高速版。シンプルな構文でファイル検索ができる
@@ -44,6 +44,76 @@
 
   home.file.".tigrc".text = ''
     set vertical-split = no
+  '';
+
+  # Karabiner-Elements: Supersetにフォーカスがある間だけ左OptionをEscapeとして送出する。
+  # SupersetのターミナルはEscapeをMetaとして認識するため、Emacsでeglot/xref(M-.等)を
+  # 左OptionキーをMeta代わりに使える感覚で使えるようにするための設定。
+  #
+  # 注意: karabiner.json本体(~/.config/karabiner/karabiner.json)はKarabiner-Elements自身が
+  # 実行時に書き換える状態ファイル(プロファイル選択、ルールの有効/無効等)を兼ねているため、
+  # home-managerでシンボリックリンク管理すると衝突する。そのため「インポート可能なルール定義」
+  # として~/.config/karabiner/assets/complex_modifications/配下にのみ配置し、
+  # 有効化はKarabiner-Elements側のPreferences → Complex Modifications → Add ruleで
+  # 初回だけ手動で行う(この「どのルールが有効か」という状態自体はNixでは管理しない)。
+  home.file.".config/karabiner/assets/complex_modifications/superset-left-option-to-escape.json".text = ''
+    {
+      "title": "Superset: 左OptionをMeta(Escape)にする",
+      "rules": [
+        {
+          "description": "Supersetにフォーカスがある間だけ、左OptionキーをEscapeとして送出する",
+          "manipulators": [
+            {
+              "type": "basic",
+              "from": {
+                "key_code": "left_option",
+                "modifiers": { "optional": ["any"] }
+              },
+              "to": [
+                { "key_code": "escape" }
+              ],
+              "conditions": [
+                {
+                  "type": "frontmost_application_if",
+                  "bundle_identifiers": ["^com\\.superset\\.desktop$"]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  '';
+
+  # Karabiner-Elements: CapsLockキーをControlとして使えるようにし、
+  # CapsLock本来の機能(トグル)自体はどのキーからも発動しないようにする。
+  # 物理ControlキーはそのままControlとして機能するため、変換は片方向のみでよい。
+  #
+  # 注意: 同じ内容を~/.config/karabiner/karabiner.json内のSimple Modifications
+  # (GUIで手動設定したもの)にも残したままだと、こちらのComplex Modificationsルールと
+  # 二重に変換されて意図通りに動かなくなる。このルールを有効化したら、
+  # Karabiner-Elements Preferences → Devices → 対象キーボード → Simple modifications
+  # 内の「left_control→caps_lock」「caps_lock→left_control」の2エントリは削除すること。
+  #
+  # 有効化はKarabiner-Elements側のPreferences → Complex Modifications → Add ruleで
+  # 初回だけ手動で行う(superset-left-command-to-escapeと同様、この「どのルールが
+  # 有効か」という状態自体はNixでは管理しない)。
+  home.file.".config/karabiner/assets/complex_modifications/capslock-to-control.json".text = ''
+    {
+      "title": "CapsLockをControlにする(CapsLock機能自体は無効化、システム全体)",
+      "rules": [
+        {
+          "description": "CapsLockキーをControlとして送出する(実際のCapsLockトグルは発動しない)",
+          "manipulators": [
+            {
+              "type": "basic",
+              "from": { "key_code": "caps_lock" },
+              "to": [{ "key_code": "left_control" }]
+            }
+          ]
+        }
+      ]
+    }
   '';
 
   home.file.".zshrc".text = ''
@@ -78,6 +148,23 @@
     }
   '';
 
+
+  # bat: SupersetのターミナルテーマがDracula(背景#282a36)のため、
+  # 表示テーマも合わせる。batはDraculaテーマを標準でバンドルしているため、
+  # 名前を指定するだけでよい。
+  #
+  # テーマ指定にはもう一つ理由があり、themeを明示しない場合batは背景が
+  # ダーク/ライトどちらかを自動判定するためOSC 11(背景色問い合わせ)を
+  # 端末に送る。Supersetはこの問い合わせに対する応答をbatが読み取る前に
+  # 画面へそのまま描画してしまい、標準出力にエスケープ応答の文字列が
+  # 混ざって表示される不具合があった。テーマを固定するとこの問い合わせ
+  # 自体が発生しなくなり、この文字化けも同時に回避できる。
+  programs.bat = {
+    enable = true;
+    config = {
+      theme = "Dracula";
+    };
+  };
 
   programs.emacs = {
     enable = true;
