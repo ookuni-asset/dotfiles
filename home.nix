@@ -1,6 +1,15 @@
 { config, pkgs, ... }:
 
+let
+  # hunk: ターミナルdiffビューア(https://hunk.dev)。nixpkgs未収録のため、
+  # hunk自身のflakeをbuiltins.getFlakeで直接参照している。lockファイルを
+  # 介さないため、home-manager switchのたびにgithub:modem-dev/hunkの
+  # 最新コミットを再取得する(バージョン固定はできない)。
+  hunkFlake = builtins.getFlake "github:modem-dev/hunk";
+in
 {
+  imports = [ hunkFlake.homeManagerModules.default ];
+
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "ty";
@@ -151,6 +160,22 @@
     }
   '';
 
+
+  # hunk: git/AIエージェントとのレビュー用diffビューア。パッケージ本体は
+  # 上のimportsで読み込んだ公式home-managerモジュール(programs.hunk)経由で
+  # 導入する。
+  programs.hunk = {
+    enable = true;
+    # 注意: enableGitIntegrationはprograms.git.settings.core.pagerを設定するだけで、
+    # このリポジトリではprograms.git自体を有効化していないため実際には無効(no-op)。
+    # gitのpagerとしてhunkを使う設定は `git config --global core.pager "hunk pager"` を
+    # 手動実行して~/.gitconfig(home-manager管理外)に反映している。
+    enableGitIntegration = true;
+    enableClaudeIntegration = true; # ~/.claude/skills/hunk-reviewにレビュースキルをリンク
+    settings = {
+      theme = "dracula"; # bat/Supersetと合わせてDraculaテーマに統一
+    };
+  };
 
   # bat: SupersetのターミナルテーマがDracula(背景#282a36)のため、
   # 表示テーマも合わせる。batはDraculaテーマを標準でバンドルしているため、
