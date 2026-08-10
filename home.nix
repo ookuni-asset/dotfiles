@@ -40,6 +40,8 @@ in
     fzf      # ファジーファインダー。コマンド履歴やファイルをインタラクティブに絞り込む
     gh       # GitHub CLI。PRの作成やIssueの管理をターミナルから行う
     glow     # ターミナル上でMarkdownをレンダリングしてプレビューする
+    go       # Go言語のツールチェーン(コンパイラ・go fmt・go test等)
+    gopls    # Go公式のLSPサーバー。Emacsのeglotから利用する
     nkf      # 文字コード変換ツール。Shift_JISやEUC-JPなど日本語の文字コードを判定・変換する
     nodejs   # JavaScriptのランタイム。npm/npxも含む
     ripgrep  # grepコマンドの高速版。.gitignoreを自動で尊重してくれる
@@ -128,6 +130,50 @@ in
     }
   '';
 
+  # Karabiner-Elements: 外付けキーボード(vendor_id 1241 / product_id 323。
+  # left_option⇔left_commandの入れ替えを設定しているものと同一デバイス)専用に、
+  # 物理左ControlキーをmacOSのfn(Globe)キーとして送出する。
+  #
+  # 背景: このデバイスでは物理CapsLockキーが既にControlとして機能する(上の
+  # capslock-to-control.jsonルール、システム全体に適用)ため、物理左Controlキーが
+  # 本来のControlとしては冗長になっていた。そこでこのキーボードに限り、
+  # 物理左Controlキーをfnキーとして再利用する。
+  #
+  # device_ifで対象デバイスを絞っているため、他のキーボード(内蔵キーボード等)の
+  # 左Controlキーには影響しない。
+  #
+  # 有効化はKarabiner-Elements側のPreferences → Complex Modifications → Add ruleで
+  # 初回だけ手動で行う(他のComplex Modificationsルールと同様、この「どのルールが
+  # 有効か」という状態自体はNixでは管理しない)。
+  home.file.".config/karabiner/assets/complex_modifications/external-keyboard-leftcontrol-to-fn.json".text = ''
+    {
+      "title": "外付けキーボード限定: 物理左Controlキーをfnキーにする",
+      "rules": [
+        {
+          "description": "外付けキーボード(vendor_id 1241 / product_id 323)でのみ、物理左Controlキーをfn(Globe)キーとして送出する",
+          "manipulators": [
+            {
+              "type": "basic",
+              "from": {
+                "key_code": "left_control",
+                "modifiers": { "optional": ["any"] }
+              },
+              "to": [{ "key_code": "fn" }],
+              "conditions": [
+                {
+                  "type": "device_if",
+                  "identifiers": [
+                    { "vendor_id": 1241, "product_id": 323 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  '';
+
   home.file.".zshrc".text = ''
     eval "$(/opt/homebrew/bin/brew shellenv zsh)"
     eval "$(direnv hook zsh)"
@@ -200,6 +246,7 @@ in
       epkgs.nix-mode
       epkgs.markdown-mode
       epkgs.rust-mode
+      epkgs.go-mode
       epkgs.catppuccin-theme # cmuxで使っているテーマ、Catppuccin Mochaに合わせる
       epkgs.corfu           # 補完ポップアップUI
       epkgs.corfu-terminal  # ターミナルEmacsでcorfuのポップアップを表示するために必要
@@ -245,6 +292,13 @@ in
     (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
     (add-hook 'rust-mode-hook 'eglot-ensure)
     (setq rust-format-on-save t)
+
+    ;; Go: go-mode + eglot(Emacs29+標準LSPクライアント)
+    ;; NixでインストールしたgoplsにPATHが通っていれば
+    ;; eglot が自動で認識するため追加設定は不要。
+    (require 'go-mode)
+    (add-hook 'go-mode-hook 'eglot-ensure)
+    (add-hook 'before-save-hook 'gofmt-before-save)
 
     ;; 補完UI: corfu(ポップアップ) + orderless(あいまい一致) + cape(補完ソース追加)
     (require 'orderless)
