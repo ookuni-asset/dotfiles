@@ -37,6 +37,7 @@ in
 #    emacs   # カスタマイズした状態でインストールするためにprograms.emacsで設定
     eza      # lsコマンドの強化版。色分け表示やgitステータス表示に対応
     fd       # findコマンドの高速版。シンプルな構文でファイル検索ができる
+    ffmpeg   # 動画・音声の変換ツール。yt-dlpがMP3変換(音声抽出)時に内部で利用する
     fzf      # ファジーファインダー。コマンド履歴やファイルをインタラクティブに絞り込む
     gh       # GitHub CLI。PRの作成やIssueの管理をターミナルから行う
     glow     # ターミナル上でMarkdownをレンダリングしてプレビューする
@@ -50,6 +51,7 @@ in
     tree     # ディレクトリ構造をツリー形式で表示する
     uv       # Pythonのパッケージ・仮想環境マネージャー。pipより大幅に高速
     wget     # URLを指定してファイルをダウンロードする
+    yt-dlp   # YouTube等の動画ダウンローダー。ffmpegと組み合わせてMP3抽出もできる
     zoxide   # cdコマンドの強化版。過去の移動履歴から頻度の高いディレクトリにジャンプできる
   ];
 
@@ -242,6 +244,12 @@ in
 
   programs.emacs = {
     enable = true;
+    # withMailutils = falseで、Emacs本体が依存するmailutils(movemail等メール機能用の
+    # ライブラリ)をビルド対象から外している。メール機能は使っておらず、また現在の
+    # nixpkgs rolling channelではmailutils-3.21がaarch64-darwinでリンクエラーにより
+    # ビルドできない状態(libmu_sieve内でシンボル未解決)のため、無効化して回避する。
+    # nixpkgs側で修正されたら、この行は不要になるかもしれない。
+    package = pkgs.emacs.override { withMailutils = false; };
     extraPackages = epkgs: [
       epkgs.nix-mode
       epkgs.markdown-mode
