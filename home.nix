@@ -453,14 +453,16 @@ in
       # 境界線を共有せず隙間を空けることで、フォーカス中のペインの境界を
       # 太く・見つけやすくする(線自体の太さを変える設定はherdrにないため)。
       pane_gaps = true
-      # デフォルトのaccent(境界線・ハイライトの色)はdraculaテーマの紫系で、
-      # サイドバーの選択ハイライト等と色味が近く埋もれて見えるため、
-      # パレット内で最もコントラストの強い黄色に上書きしてフォーカス中の
-      # ペインを目立たせる。
-      accent = "#f1fa8c"
+      # デフォルトのaccent(境界線・ハイライトの色)は紫系で、サイドバーの
+      # 選択ハイライト等と色味が近く埋もれて見えるため、パレット内で
+      # 最もコントラストの強い黄色(Catppuccin Mochaのyellowトークン)に
+      # 上書きしてフォーカス中のペインを目立たせる。
+      accent = "#f9e2af"
 
       [theme]
-      name = "dracula"
+      # GhosttyとEmacsがCatppuccin Mochaなので揃える(herdrの組み込み
+      # "catppuccin"テーマはMocha相当で、herdr自体のデフォルト値でもある)。
+      name = "catppuccin"
       auto_switch = false
     '';
   };
