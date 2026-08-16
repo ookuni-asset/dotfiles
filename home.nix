@@ -41,6 +41,28 @@ let
     ];
     conditions = [ supersetCondition ];
   }) supersetMetaKeys;
+
+  # herdr用: prefix+dで「左claude・中央シェル・右yazi(幅比3:5:2)」の
+  # 3ペイン構成を持つ新規ワークスペースを作る。herdrのpane split --ratioは
+  # 分割元(左側)ペインの取り分なので、まず0.3で切り出し、残り0.7を
+  # さらに0.7142857(5/7)で切ることで全体比3:5:2を実現している。
+  herdrDevLayoutScript = pkgs.writeShellScriptBin "herdr-dev-layout" ''
+    set -euo pipefail
+
+    cwd="''${HERDR_ACTIVE_PANE_CWD:-$HOME}"
+
+    create=$(herdr workspace create --cwd "$cwd" --focus)
+    p1=$(echo "$create" | jq -r '.result.root_pane.pane_id')
+
+    s1=$(herdr pane split "$p1" --direction right --ratio 0.3)
+    p2=$(echo "$s1" | jq -r '.result.pane.pane_id')
+
+    s2=$(herdr pane split "$p2" --direction right --ratio 0.7142857)
+    p3=$(echo "$s2" | jq -r '.result.pane.pane_id')
+
+    herdr pane run "$p1" claude
+    herdr pane run "$p3" yazi
+  '';
 in
 {
   imports = [ hunkFlake.homeManagerModules.default ];
@@ -78,6 +100,9 @@ in
     glow     # ターミナル上でMarkdownをレンダリングしてプレビューする
     go       # Go言語のツールチェーン(コンパイラ・go fmt・go test等)
     gopls    # Go公式のLSPサーバー。Emacsのeglotから利用する
+    herdr    # コーディングエージェント向けランタイム。ターミナルを常時稼働させ、どこでもエージェントを実行できる
+    herdrDevLayoutScript # herdr prefix+d用: claude/シェル/yaziの3ペインworkspaceを自動生成
+    jq       # JSONを整形・抽出するコマンドラインツール。herdr-dev-layoutがAPI応答のパースに使う
     nkf      # 文字コード変換ツール。Shift_JISやEUC-JPなど日本語の文字コードを判定・変換する
     nodejs   # JavaScriptのランタイム。npm/npxも含む
     ripgrep  # grepコマンドの高速版。.gitignoreを自動で尊重してくれる
@@ -86,6 +111,7 @@ in
     tree     # ディレクトリ構造をツリー形式で表示する
     uv       # Pythonのパッケージ・仮想環境マネージャー。pipより大幅に高速
     wget     # URLを指定してファイルをダウンロードする
+#    yazi     # レイアウトをカスタマイズした状態でインストールするためprograms.yaziで設定
     yt-dlp   # YouTube等の動画ダウンローダー。ffmpegと組み合わせてMP3抽出もできる
     zoxide   # cdコマンドの強化版。過去の移動履歴から頻度の高いディレクトリにジャンプできる
   ];
@@ -280,6 +306,18 @@ in
     };
   };
 
+  # yazi: ターミナルファイラー。デフォルトは親ディレクトリ/カレント/プレビューの
+  # 3ペイン表示だが、カレントディレクトリのファイル一覧だけを全幅で表示したいため
+  # ratioで親ペインとプレビューペインの幅を0にする。
+  programs.yazi = {
+    enable = true;
+    settings = {
+      mgr = {
+        ratio = [ 0 1 0 ];
+      };
+    };
+  };
+
   programs.emacs = {
     enable = true;
     # withMailutils = falseで、Emacs本体が依存するmailutils(movemail等メール機能用の
@@ -352,6 +390,12 @@ in
     ;; として扱われる点に注意。
     (global-set-key (kbd "C-c C-i") 'eglot-find-implementation)
 
+    ;; M-. / M-, はOption+記号キーの同時押しになるため、herdr(Ghostty経由)では
+    ;; 伝わらないことがある。C-c C-iと同じ理由で、Ctrlベースの確実に伝わる
+    ;; キーにも同じコマンドを割り当てておく。
+    (global-set-key (kbd "C-c .") 'xref-find-definitions)
+    (global-set-key (kbd "C-c ,") 'xref-go-back)
+
     ;; 補完UI: corfu(ポップアップ) + orderless(あいまい一致) + cape(補完ソース追加)
     (require 'orderless)
     (setq completion-styles '(orderless basic)
@@ -386,6 +430,39 @@ in
     #   org.gradle.console=verbose
     #   org.gradle.daemon.idletimeout=3600000
     # '';
+
+    # herdr: prefixキーをCtrl+Bのデフォルトから、Ghosttyのタブ切り替え(Cmd+T)と
+    # 衝突しないCtrl+Zに変更している。job control(SIGTSTP)のCtrl+Zとは競合するが、
+    # job controlは使わない運用のため許容している。
+    ".config/herdr/config.toml".text = ''
+      onboarding = false
+
+      [keys]
+      prefix = "ctrl+z"
+
+      # prefix+d: 左claude・中央シェル・右yazi(幅比3:5:2)の3ペイン構成で
+      # 新規ワークスペースを作る。shellは検出したままバックグラウンドで
+      # 実行され、ペイン自体の起動には関与しない(=herdr-dev-layoutの中で
+      # 明示的にpane splitとpane runを行っている)。
+      [[keys.command]]
+      key = "prefix+d"
+      type = "shell"
+      command = "herdr-dev-layout"
+
+      [ui]
+      # 境界線を共有せず隙間を空けることで、フォーカス中のペインの境界を
+      # 太く・見つけやすくする(線自体の太さを変える設定はherdrにないため)。
+      pane_gaps = true
+      # デフォルトのaccent(境界線・ハイライトの色)はdraculaテーマの紫系で、
+      # サイドバーの選択ハイライト等と色味が近く埋もれて見えるため、
+      # パレット内で最もコントラストの強い黄色に上書きしてフォーカス中の
+      # ペインを目立たせる。
+      accent = "#f1fa8c"
+
+      [theme]
+      name = "dracula"
+      auto_switch = false
+    '';
   };
 
   # Home Manager can also manage your environment variables through
