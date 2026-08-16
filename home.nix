@@ -465,6 +465,77 @@ in
       name = "catppuccin"
       auto_switch = false
     '';
+
+    # Ghostty: これまで~/.config/ghosttyを手動編集で管理していたが、
+    # home.nixに移して他の設定と同様にNixで管理する。theme指定は
+    # herdr/Emacsと揃えたCatppuccin Mocha。background/foreground/cursor-color
+    # は手動運用時代からの上書きで、テーマ既定のbase(#1e1e2e)より一段暗い
+    # crust(#11111b)を使う好みを引き継いでいる。
+    ".config/ghostty/config".text = ''
+      # フォント
+      font-family = "JetBrains Mono"
+      font-size = 16
+      adjust-cell-height = 10%
+
+      # テーマ(Catppuccin Mocha。背景色のみcrustトーンに独自上書き)
+      theme = "Catppuccin Mocha"
+      background = #11111b
+      foreground = #cdd6f4
+      cursor-color = #f5e0dc
+
+      # 背景透過・ブラー
+      background-opacity = 0.90
+      background-blur-radius = 20
+
+      # ウィンドウ
+      window-padding-x = 10
+      window-padding-y = 10
+      window-padding-balance = true
+      macos-titlebar-style = transparent
+      macos-window-shadow = true
+      mouse-hide-while-typing = true
+
+      # 分割ペイン
+      unfocused-split-opacity = 0.80
+      unfocused-split-fill = #11111b
+      split-divider-color = #45475a
+
+      # スクロールバック
+      scrollback-limit = 50000
+
+      # 作業ディレクトリ
+      working-directory = ~/code
+
+      # metaキーを左optionに割り当てる
+      macos-option-as-alt = left
+
+      # 操作性
+      copy-on-select = true
+      clipboard-read = allow
+      clipboard-write = allow
+    '';
+
+    # direnv: 本体はBrewfileでインストール(brew "direnv")しているが、
+    # 設定ファイル(~/.config/direnv/direnvrc)はこれまで手動編集で
+    # 管理していたためNix管理下に移す。layout_uvはuvでの.venv作成を
+    # direnvのlayoutコマンドとして使えるようにするカスタム関数。
+    ".config/direnv/direnvrc".text = ''
+      layout_uv() {
+        if [[ -d ".venv" ]]; then
+          VIRTUAL_ENV="$(pwd)/.venv"
+        fi
+
+        if [[ -z $VIRTUAL_ENV || ! -d $VIRTUAL_ENV ]]; then
+          log_status "No virtual environment found. Creating one with uv..."
+          uv venv .venv
+          VIRTUAL_ENV="$(pwd)/.venv"
+        fi
+
+        export VIRTUAL_ENV
+        export PATH="$VIRTUAL_ENV/bin:$PATH"
+        log_status "Using virtualenv: $VIRTUAL_ENV"
+      }
+    '';
   };
 
   # Home Manager can also manage your environment variables through
