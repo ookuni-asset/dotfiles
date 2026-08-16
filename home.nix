@@ -6,6 +6,41 @@ let
   # 介さないため、home-manager switchのたびにgithub:modem-dev/hunkの
   # 最新コミットを再取得する(バージョン固定はできない)。
   hunkFlake = builtins.getFlake "github:modem-dev/hunk";
+
+  # Superset用: 左OptionキーをEmacsのMetaキーとして使うためのKarabinerルール生成。
+  # 「Optionキー単体→Escapeキー単体」への単純な置き換えだと、Option押下と他キー押下が
+  # 別々の独立したキーイベントとして送出されるため、同時押し(コンビネーション)として
+  # ターミナルに伝わらないことがあった(ESC→キーの2打鍵は動くのに、Optionを押しっぱなし
+  # にしたまま他のキーを押す同時押しだと動かない、という非対称な挙動になっていた)。
+  # そこで、Option+個別キーの組み合わせごとに「ESC→そのキー」を1つのイベントとして
+  # まとめて送出するルールを、対象キー分だけ生成する。加えてOption単体タップ時は
+  # 従来通りEscapeとして機能するよう、lazy+to_if_aloneの組み合わせも残す。
+  supersetCondition = {
+    type = "frontmost_application_if";
+    bundle_identifiers = [ "^com\\.superset\\.desktop$" ];
+  };
+
+  supersetMetaKeys =
+    [ "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "l" "m"
+      "n" "o" "p" "q" "r" "s" "t" "u" "v" "w" "x" "y" "z"
+      "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"
+      "period" "comma" "slash" "hyphen" "equal_sign" "semicolon" "quote"
+      "open_bracket" "close_bracket" "backslash" "grave_accent_and_tilde"
+      "spacebar" "tab" "return_or_enter" "delete_or_backspace"
+    ];
+
+  supersetMetaManipulators = map (key: {
+    type = "basic";
+    from = {
+      key_code = key;
+      modifiers = { mandatory = [ "left_option" ]; optional = [ "any" ]; };
+    };
+    to = [
+      { key_code = "escape"; }
+      { key_code = key; }
+    ];
+    conditions = [ supersetCondition ];
+  }) supersetMetaKeys;
 in
 {
   imports = [ hunkFlake.homeManagerModules.default ];
@@ -59,9 +94,15 @@ in
     set vertical-split = no
   '';
 
-  # Karabiner-Elements: Supersetにフォーカスがある間だけ左OptionをEscapeとして送出する。
-  # SupersetのターミナルはEscapeをMetaとして認識するため、Emacsでeglot/xref(M-.等)を
-  # 左OptionキーをMeta代わりに使える感覚で使えるようにするための設定。
+  # Karabiner-Elements: Supersetにフォーカスがある間、左OptionキーをEmacsのMetaキーとして
+  # 使えるようにする。ルールの中身の生成ロジックは上のletブロック(supersetCondition /
+  # supersetMetaKeys / supersetMetaManipulators)を参照。
+  #
+  # 以前は「Optionキー単体→Escapeキー単体」への単純置き換えだった(ファイル名
+  # superset-left-option-to-escape.json)が、Option+他キーの同時押しがうまく伝わらない
+  # 問題があったため、このルールに置き換えた。Karabiner-Elements側で古いルール
+  # 「Superset: 左OptionをMeta(Escape)にする」が有効化されている場合は無効化し、
+  # 代わりに下記の新しいルールを有効化すること。
   #
   # 注意: karabiner.json本体(~/.config/karabiner/karabiner.json)はKarabiner-Elements自身が
   # 実行時に書き換える状態ファイル(プロファイル選択、ルールの有効/無効等)を兼ねているため、
@@ -69,34 +110,31 @@ in
   # として~/.config/karabiner/assets/complex_modifications/配下にのみ配置し、
   # 有効化はKarabiner-Elements側のPreferences → Complex Modifications → Add ruleで
   # 初回だけ手動で行う(この「どのルールが有効か」という状態自体はNixでは管理しない)。
-  home.file.".config/karabiner/assets/complex_modifications/superset-left-option-to-escape.json".text = ''
-    {
-      "title": "Superset: 左OptionをMeta(Escape)にする",
-      "rules": [
+  home.file.".config/karabiner/assets/complex_modifications/superset-option-meta.json".text =
+    builtins.toJSON {
+      title = "Superset: 左OptionキーをMetaとして使う";
+      rules = [
         {
-          "description": "Supersetにフォーカスがある間だけ、左OptionキーをEscapeとして送出する",
-          "manipulators": [
+          description = "Supersetにフォーカスがある間、左Optionを単体でタップしたらEscape、他のキーと同時押ししたらESC+そのキーをまとめて送出する(Emacsのeglot/xref等でM-.のようなMetaキー操作を使うため)";
+          manipulators = [
             {
-              "type": "basic",
-              "from": {
-                "key_code": "left_option",
-                "modifiers": { "optional": ["any"] }
-              },
-              "to": [
-                { "key_code": "escape" }
-              ],
-              "conditions": [
-                {
-                  "type": "frontmost_application_if",
-                  "bundle_identifiers": ["^com\\.superset\\.desktop$"]
-                }
-              ]
+              type = "basic";
+              from = {
+                key_code = "left_option";
+                modifiers = { optional = [ "any" ]; };
+              };
+              to = [
+                { key_code = "left_option"; lazy = true; }
+              ];
+              to_if_alone = [
+                { key_code = "escape"; }
+              ];
+              conditions = [ supersetCondition ];
             }
-          ]
+          ] ++ supersetMetaManipulators;
         }
-      ]
-    }
-  '';
+      ];
+    };
 
   # Karabiner-Elements: CapsLockキーをControlとして使えるようにし、
   # CapsLock本来の機能(トグル)自体はどのキーからも発動しないようにする。
@@ -307,6 +345,12 @@ in
     (require 'go-mode)
     (add-hook 'go-mode-hook 'eglot-ensure)
     (add-hook 'before-save-hook 'gofmt-before-save)
+
+    ;; interfaceのメソッド呼び出しからM-.すると宣言(interface側)にしか飛べないため、
+    ;; 具体的な実装(struct側)に飛びたいときはこちらを使う。
+    ;; 端末上ではC-iはTabと同じバイト(0x09)を送るため、実質C-c TABと同じキー
+    ;; として扱われる点に注意。
+    (global-set-key (kbd "C-c C-i") 'eglot-find-implementation)
 
     ;; 補完UI: corfu(ポップアップ) + orderless(あいまい一致) + cape(補完ソース追加)
     (require 'orderless)
