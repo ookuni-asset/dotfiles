@@ -396,6 +396,12 @@ in
     (global-set-key (kbd "C-c .") 'xref-find-definitions)
     (global-set-key (kbd "C-c ,") 'xref-go-back)
 
+    ;; Markdown: 開いた時点でマークアップ記号(**, # など)を隠して表示する。
+    ;; 記号を確認・編集したいときはC-c C-x C-m(markdown-toggle-markup-hiding)
+    ;; で一時的に表示/非表示を切り替えられる。
+    (require 'markdown-mode)
+    (setq markdown-hide-markup t)
+
     ;; 補完UI: corfu(ポップアップ) + orderless(あいまい一致) + cape(補完ソース追加)
     (require 'orderless)
     (setq completion-styles '(orderless basic)
