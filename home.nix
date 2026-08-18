@@ -360,8 +360,16 @@ in
     (setq project-vc-extra-root-markers '("Cargo.toml"))
   
     ;; Catppuccin Mocha テーマ
-    (load-theme 'catppuccin :no-confirm)
+    ;; Nix(home-manager)でインストールしたパッケージはload-pathには追加されるが、
+    ;; custom-theme-load-pathには追加されない(package.elの通常のアクティベーション
+    ;; を経由しないため)。load-themeはcustom-theme-load-pathしか見ないため、
+    ;; いきなりload-themeを呼ぶと"Unable to find theme file"エラーで停止し、
+    ;; それ以降のinit.el全体(markdown-mode等の設定含む)が読み込まれなくなる。
+    ;; 先にrequireしてファイルを読み込ませることで、catppuccin-theme.el内の
+    ;; custom-theme-load-pathへの自己登録処理を先に走らせてから解決する。
+    (require 'catppuccin-theme)
     (setq catppuccin-flavor 'mocha)
+    (load-theme 'catppuccin :no-confirm)
     (catppuccin-reload)
   
     ;; フォント（JetBrains Mono はcmuxと同じ）
@@ -399,8 +407,12 @@ in
     ;; Markdown: 開いた時点でマークアップ記号(**, # など)を隠して表示する。
     ;; 記号を確認・編集したいときはC-c C-x C-m(markdown-toggle-markup-hiding)
     ;; で一時的に表示/非表示を切り替えられる。
+    ;; markdown-hide-markupはmarkdown-mode側でmake-variable-buffer-local指定
+    ;; されているため、単純にsetqすると起動時にカレントだったバッファ(*scratch*等)
+    ;; にしかローカル設定されず、実際に開くMarkdownバッファには反映されない。
+    ;; 全バッファのデフォルト値を変えるにはsetq-defaultを使う必要がある。
     (require 'markdown-mode)
-    (setq markdown-hide-markup t)
+    (setq-default markdown-hide-markup t)
 
     ;; 補完UI: corfu(ポップアップ) + orderless(あいまい一致) + cape(補完ソース追加)
     (require 'orderless)
