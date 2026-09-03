@@ -10,4 +10,3 @@ cask "docker-desktop"
 cask "ghostty"
 cask "google-chrome"
 # cask "orbstack" # Docker SandboxとDocker MCP Toolkitに未対応(2026-08時点、orbstack/orbstack issue #2295, #2175, #2056)。対応されたら再検討する
-cask "superset"

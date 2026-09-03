@@ -7,41 +7,6 @@ let
   # 最新コミットを再取得する(バージョン固定はできない)。
   hunkFlake = builtins.getFlake "github:modem-dev/hunk";
 
-  # Superset用: 左OptionキーをEmacsのMetaキーとして使うためのKarabinerルール生成。
-  # 「Optionキー単体→Escapeキー単体」への単純な置き換えだと、Option押下と他キー押下が
-  # 別々の独立したキーイベントとして送出されるため、同時押し(コンビネーション)として
-  # ターミナルに伝わらないことがあった(ESC→キーの2打鍵は動くのに、Optionを押しっぱなし
-  # にしたまま他のキーを押す同時押しだと動かない、という非対称な挙動になっていた)。
-  # そこで、Option+個別キーの組み合わせごとに「ESC→そのキー」を1つのイベントとして
-  # まとめて送出するルールを、対象キー分だけ生成する。加えてOption単体タップ時は
-  # 従来通りEscapeとして機能するよう、lazy+to_if_aloneの組み合わせも残す。
-  supersetCondition = {
-    type = "frontmost_application_if";
-    bundle_identifiers = [ "^com\\.superset\\.desktop$" ];
-  };
-
-  supersetMetaKeys =
-    [ "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "l" "m"
-      "n" "o" "p" "q" "r" "s" "t" "u" "v" "w" "x" "y" "z"
-      "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"
-      "period" "comma" "slash" "hyphen" "equal_sign" "semicolon" "quote"
-      "open_bracket" "close_bracket" "backslash" "grave_accent_and_tilde"
-      "spacebar" "tab" "return_or_enter" "delete_or_backspace"
-    ];
-
-  supersetMetaManipulators = map (key: {
-    type = "basic";
-    from = {
-      key_code = key;
-      modifiers = { mandatory = [ "left_option" ]; optional = [ "any" ]; };
-    };
-    to = [
-      { key_code = "escape"; }
-      { key_code = key; }
-    ];
-    conditions = [ supersetCondition ];
-  }) supersetMetaKeys;
-
   # herdr用: prefix+dで「左claude・中央シェル・右yazi(幅比3:5:2)」の
   # 3ペイン構成を持つ新規ワークスペースを作る。herdrのpane split --ratioは
   # 分割元(左側)ペインの取り分なので、まず0.3で切り出し、残り0.7を
@@ -120,48 +85,6 @@ in
     set vertical-split = no
   '';
 
-  # Karabiner-Elements: Supersetにフォーカスがある間、左OptionキーをEmacsのMetaキーとして
-  # 使えるようにする。ルールの中身の生成ロジックは上のletブロック(supersetCondition /
-  # supersetMetaKeys / supersetMetaManipulators)を参照。
-  #
-  # 以前は「Optionキー単体→Escapeキー単体」への単純置き換えだった(ファイル名
-  # superset-left-option-to-escape.json)が、Option+他キーの同時押しがうまく伝わらない
-  # 問題があったため、このルールに置き換えた。Karabiner-Elements側で古いルール
-  # 「Superset: 左OptionをMeta(Escape)にする」が有効化されている場合は無効化し、
-  # 代わりに下記の新しいルールを有効化すること。
-  #
-  # 注意: karabiner.json本体(~/.config/karabiner/karabiner.json)はKarabiner-Elements自身が
-  # 実行時に書き換える状態ファイル(プロファイル選択、ルールの有効/無効等)を兼ねているため、
-  # home-managerでシンボリックリンク管理すると衝突する。そのため「インポート可能なルール定義」
-  # として~/.config/karabiner/assets/complex_modifications/配下にのみ配置し、
-  # 有効化はKarabiner-Elements側のPreferences → Complex Modifications → Add ruleで
-  # 初回だけ手動で行う(この「どのルールが有効か」という状態自体はNixでは管理しない)。
-  home.file.".config/karabiner/assets/complex_modifications/superset-option-meta.json".text =
-    builtins.toJSON {
-      title = "Superset: 左OptionキーをMetaとして使う";
-      rules = [
-        {
-          description = "Supersetにフォーカスがある間、左Optionを単体でタップしたらEscape、他のキーと同時押ししたらESC+そのキーをまとめて送出する(Emacsのeglot/xref等でM-.のようなMetaキー操作を使うため)";
-          manipulators = [
-            {
-              type = "basic";
-              from = {
-                key_code = "left_option";
-                modifiers = { optional = [ "any" ]; };
-              };
-              to = [
-                { key_code = "left_option"; lazy = true; }
-              ];
-              to_if_alone = [
-                { key_code = "escape"; }
-              ];
-              conditions = [ supersetCondition ];
-            }
-          ] ++ supersetMetaManipulators;
-        }
-      ];
-    };
-
   # Karabiner-Elements: CapsLockキーをControlとして使えるようにし、
   # CapsLock本来の機能(トグル)自体はどのキーからも発動しないようにする。
   # 物理ControlキーはそのままControlとして機能するため、変換は片方向のみでよい。
@@ -173,7 +96,7 @@ in
   # 内の「left_control→caps_lock」「caps_lock→left_control」の2エントリは削除すること。
   #
   # 有効化はKarabiner-Elements側のPreferences → Complex Modifications → Add ruleで
-  # 初回だけ手動で行う(superset-left-command-to-escapeと同様、この「どのルールが
+  # 初回だけ手動で行う(他のComplex Modificationsルールと同様、この「どのルールが
   # 有効か」という状態自体はNixでは管理しない)。
   home.file.".config/karabiner/assets/complex_modifications/capslock-to-control.json".text = ''
     {
@@ -285,24 +208,23 @@ in
     enableGitIntegration = true;
     enableClaudeIntegration = true; # ~/.claude/skills/hunk-reviewにレビュースキルをリンク
     settings = {
-      theme = "dracula"; # bat/Supersetと合わせてDraculaテーマに統一
+      theme = "catppuccin-mocha"; # Ghostty/Emacs/herdr/batと合わせてCatppuccin Mochaに統一
     };
   };
 
-  # bat: SupersetのターミナルテーマがDracula(背景#282a36)のため、
-  # 表示テーマも合わせる。batはDraculaテーマを標準でバンドルしているため、
-  # 名前を指定するだけでよい。
+  # bat: Ghostty/Emacs/herdr/hunkと同じCatppuccin Mochaに揃える。batは
+  # Catppuccin系テーマを標準でバンドルしているため、名前を指定するだけでよい。
   #
   # テーマ指定にはもう一つ理由があり、themeを明示しない場合batは背景が
   # ダーク/ライトどちらかを自動判定するためOSC 11(背景色問い合わせ)を
-  # 端末に送る。Supersetはこの問い合わせに対する応答をbatが読み取る前に
+  # 端末に送る。端末によってはこの問い合わせへの応答をbatが読み取る前に
   # 画面へそのまま描画してしまい、標準出力にエスケープ応答の文字列が
-  # 混ざって表示される不具合があった。テーマを固定するとこの問い合わせ
-  # 自体が発生しなくなり、この文字化けも同時に回避できる。
+  # 混ざって表示されることがある。テーマを固定するとこの問い合わせ自体が
+  # 発生しなくなり、この文字化けも同時に回避できる。
   programs.bat = {
     enable = true;
     config = {
-      theme = "Dracula";
+      theme = "Catppuccin Mocha";
     };
   };
 
@@ -340,7 +262,7 @@ in
   };
 
   home.file.".emacs.d/early-init.el".text = ''
-    ;; Superset等一部の端末で、起動時のDA/背景色問い合わせへの応答が
+    ;; 一部の端末で、起動時のDA/背景色問い合わせへの応答が
     ;; ファイルバッファの先頭に誤挿入される問題を回避するため、
     ;; ターミナル機能の自動検出（エスケープシーケンス問い合わせ）を無効化する
     (setq xterm-extra-capabilities nil)
