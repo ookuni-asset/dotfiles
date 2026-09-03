@@ -53,7 +53,7 @@ git clone https://github.com/ookuni-asset/dotfiles.git ~/dotfiles
 ln -sf ~/dotfiles/home.nix ~/.config/home-manager/home.nix
 ```
 
-> `home.nix` 内の `home.username` と `home.homeDirectory` は環境に合わせて書き換えてください (デフォルトは `ty` / `/Users/ty`)。
+> `home.username` と `home.homeDirectory` は `$USER` / `$HOME` から自動で決まるため、書き換えは不要です。
 
 ### 5. 適用
 

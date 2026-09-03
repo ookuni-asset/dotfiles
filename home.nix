@@ -1,6 +1,19 @@
 { config, pkgs, ... }:
 
 let
+  # 別のユーザーがこのhome.nixをそのまま使えるよう、ユーザー名とホーム
+  # ディレクトリはハードコードせず環境変数($USER/$HOME)から取得する。
+  # home-manager switchは内部でnix-build(impure評価)を使うため
+  # builtins.getEnvが機能する。ただしflake経由などpure evalで評価すると
+  # getEnvは""を返して無言で壊れるため、その場合は明示的にエラーにする。
+  envOrThrow = name:
+    let value = builtins.getEnv name;
+    in if value != "" then
+      value
+    else
+      throw ("環境変数 $" + name + " を取得できませんでした。"
+        + "home.nixはimpure評価(home-manager switch)を前提にしています。");
+
   # hunk: ターミナルdiffビューア(https://hunk.dev)。nixpkgs未収録のため、
   # hunk自身のflakeをbuiltins.getFlakeで直接参照している。lockファイルを
   # 介さないため、home-manager switchのたびにgithub:modem-dev/hunkの
@@ -34,8 +47,8 @@ in
 
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
-  home.username = "ty";
-  home.homeDirectory = "/Users/ty";
+  home.username = envOrThrow "USER";
+  home.homeDirectory = envOrThrow "HOME";
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -238,7 +251,7 @@ in
     alias emacs='emacs -nw'
 
     # uv
-    export PATH="/Users/ty/.local/bin:$PATH"
+    export PATH="$HOME/.local/bin:$PATH"
 
     # rust-study: cargo/rustcをNixビルドのコンテナ(Rustツールチェーンのみ)内で実行する。
     # 編集(Emacs/eglot/補完)はローカルのrustup/rust-analyzerで行い、
