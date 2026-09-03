@@ -120,7 +120,8 @@ in
   '';
 
   # Karabiner-Elements: 外付けキーボード(vendor_id 1241 / product_id 323。
-  # left_option⇔left_commandの入れ替えを設定しているものと同一デバイス)専用に、
+  # 下のexternal-keyboard-swap-command-option.jsonで左Command⇔左Optionの
+  # 入れ替えを設定しているものと同一デバイス)専用に、
   # 物理左ControlキーをmacOSのfn(Globe)キーとして送出する。
   #
   # 背景: このデバイスでは物理CapsLockキーが既にControlとして機能する(上の
@@ -148,6 +149,70 @@ in
                 "modifiers": { "optional": ["any"] }
               },
               "to": [{ "key_code": "fn" }],
+              "conditions": [
+                {
+                  "type": "device_if",
+                  "identifiers": [
+                    { "vendor_id": 1241, "product_id": 323 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  '';
+
+  # Karabiner-Elements: 外付けキーボード(vendor_id 1241 / product_id 323)専用に、
+  # 左Commandキーと左Optionキーを入れ替える。
+  #
+  # 背景: このキーボードはWindows配列で、スペースキーの左隣が物理的にAlt(Option)、
+  # その外側がWin(Command)という並びになっている。Mac配列(スペースの左隣がCommand)と
+  # 逆のため、左Command⇔左Optionを入れ替えてMac配列と同じ指使いで打てるようにする。
+  #
+  # 元々はKarabiner-Elements GUIのSimple Modifications(Devices → 対象キーボード)で
+  # 設定していたものを、他のルールと同様にNixで管理できるようComplex Modificationsへ
+  # 移行したもの。
+  #
+  # 注意: Simple Modifications側の「left_command→left_option」「left_option→left_command」
+  # の2エントリを残したままこのルールを有効化すると二重に変換されて元に戻ってしまうため、
+  # Karabiner-Elements Preferences → Simple Modifications → 対象キーボードを選択し、
+  # 該当2エントリを削除すること。
+  #
+  # 有効化はKarabiner-Elements側のPreferences → Complex Modifications → Add ruleで
+  # 初回だけ手動で行う(他のComplex Modificationsルールと同様、この「どのルールが
+  # 有効か」という状態自体はNixでは管理しない)。
+  home.file.".config/karabiner/assets/complex_modifications/external-keyboard-swap-command-option.json".text = ''
+    {
+      "title": "外付けキーボード限定: 左Commandキーと左Optionキーを入れ替える",
+      "rules": [
+        {
+          "description": "外付けキーボード(vendor_id 1241 / product_id 323)でのみ、左Commandキーと左Optionキーを入れ替える",
+          "manipulators": [
+            {
+              "type": "basic",
+              "from": {
+                "key_code": "left_command",
+                "modifiers": { "optional": ["any"] }
+              },
+              "to": [{ "key_code": "left_option" }],
+              "conditions": [
+                {
+                  "type": "device_if",
+                  "identifiers": [
+                    { "vendor_id": 1241, "product_id": 323 }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "basic",
+              "from": {
+                "key_code": "left_option",
+                "modifiers": { "optional": ["any"] }
+              },
+              "to": [{ "key_code": "left_command" }],
               "conditions": [
                 {
                   "type": "device_if",
