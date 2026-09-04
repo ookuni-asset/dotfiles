@@ -83,6 +83,7 @@ in
     jq       # JSONを整形・抽出するコマンドラインツール。herdr-dev-layoutがAPI応答のパースに使う
     nkf      # 文字コード変換ツール。Shift_JISやEUC-JPなど日本語の文字コードを判定・変換する
     nodejs   # JavaScriptのランタイム。npm/npxも含む
+    phpactor # PHPのLSPサーバー。Emacsのeglotから利用する
     ripgrep  # grepコマンドの高速版。.gitignoreを自動で尊重してくれる
     rustup   # Rustツールチェーンのバージョンマネージャー。uvのPython版に相当
     ssm-session-manager-plugin # aws ssm start-sessionがPATHから探して内部で呼ぶプラグイン
@@ -347,6 +348,7 @@ in
       epkgs.rust-mode
       epkgs.go-mode
       epkgs.typescript-mode
+      epkgs.php-mode
       epkgs.catppuccin-theme # cmuxで使っているテーマ、Catppuccin Mochaに合わせる
       epkgs.corfu           # 補完ポップアップUI
       epkgs.corfu-terminal  # ターミナルEmacsでcorfuのポップアップを表示するために必要
@@ -426,6 +428,12 @@ in
     ;; がLSPプロトコルに変換してeglotに渡す。両方PATHが通っていれば追加設定は不要。
     (require 'typescript-mode)
     (add-hook 'typescript-mode-hook 'eglot-ensure)
+
+    ;; PHP: php-mode + eglot(Emacs29+標準LSPクライアント)
+    ;; NixでインストールしたphpactorにPATHが通っていれば
+    ;; eglot が自動で認識するため追加設定は不要。
+    (require 'php-mode)
+    (add-hook 'php-mode-hook 'eglot-ensure)
 
     ;; interfaceのメソッド呼び出しからM-.すると宣言(interface側)にしか飛べないため、
     ;; 具体的な実装(struct側)に飛びたいときはこちらを使う。
