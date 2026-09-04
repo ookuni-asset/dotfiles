@@ -85,6 +85,7 @@ in
     nodejs   # JavaScriptのランタイム。npm/npxも含む
     ripgrep  # grepコマンドの高速版。.gitignoreを自動で尊重してくれる
     rustup   # Rustツールチェーンのバージョンマネージャー。uvのPython版に相当
+    ssm-session-manager-plugin # aws ssm start-sessionがPATHから探して内部で呼ぶプラグイン
     tig      # gitのTUIフロントエンド。ログやdiffをターミナル上でビジュアルに確認する
     tree     # ディレクトリ構造をツリー形式で表示する
     typescript # TypeScriptのコンパイラ(tsc)。.tsを型チェックしてJavaScriptに変換する
@@ -249,6 +250,12 @@ in
     # ~/.nix-profile/binより前に来てしまう(Nixでインストールした同名コマンドが
     # 見えない)。ここで明示的に先頭へ持ってきて、Nix版を優先させる。
     export PATH="$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin:$PATH"
+
+    # 上のPATH変更でmanもNix版(man-db)になる。/usr/bin/manはシェルスクリプトの
+    # ラッパーでxcrun経由でXcode CLTのmanディレクトリを見に行くが、man-dbはそれを
+    # しないため`man git`等280ページが引けなくなる。MANPATHに足して補う。
+    # 先頭のコロンは「man-dbのデフォルトmanpathを維持したうえで追加する」意味。
+    export MANPATH=":/Library/Developer/CommandLineTools/usr/share/man"
 
     eval "$(/opt/homebrew/bin/brew shellenv zsh)"
     eval "$(direnv hook zsh)"
