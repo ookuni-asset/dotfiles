@@ -87,6 +87,8 @@ in
     rustup   # Rustツールチェーンのバージョンマネージャー。uvのPython版に相当
     tig      # gitのTUIフロントエンド。ログやdiffをターミナル上でビジュアルに確認する
     tree     # ディレクトリ構造をツリー形式で表示する
+    typescript # TypeScriptnのコンパイラ(tsc)。.tsを型チェックしてJavascriptに変換する
+    typescript-language-server # tsserverをLSPプロトコルに変換するサーバー。Emacsのeglotから利用する
     uv       # Pythonのパッケージ・仮想環境マネージャー。pipより大幅に高速
     wget     # URLを指定してファイルをダウンロードする
 #    yazi     # レイアウトをカスタマイズした状態でインストールするためprograms.yaziで設定
@@ -331,6 +333,7 @@ in
       epkgs.markdown-mode
       epkgs.rust-mode
       epkgs.go-mode
+      epkgs.typescript-mode
       epkgs.catppuccin-theme # cmuxで使っているテーマ、Catppuccin Mochaに合わせる
       epkgs.corfu           # 補完ポップアップUI
       epkgs.corfu-terminal  # ターミナルEmacsでcorfuのポップアップを表示するために必要
@@ -391,6 +394,12 @@ in
     (require 'go-mode)
     (add-hook 'go-mode-hook 'eglot-ensure)
     (add-hook 'before-save-hook 'gofmt-before-save)
+
+    ;; TypeScript: typescript-mode + eglot(Emacs29+標準LSPクライアント)
+    ;; Nixでインストールしたtypescriptパッケージのtsserverを、typescript-language-server
+    ;; がLSPプロトコルに変換してeglotに渡す。両方PATHが通っていれば追加設定は不要。
+    (require 'typescript-mode)
+    (add-hook 'typescript-mode-hook 'eglot-ensure)
 
     ;; interfaceのメソッド呼び出しからM-.すると宣言(interface側)にしか飛べないため、
     ;; 具体的な実装(struct側)に飛びたいときはこちらを使う。
