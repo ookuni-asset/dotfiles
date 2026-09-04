@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   # 別のユーザーがこのhome.nixをそのまま使えるよう、ユーザー名とホーム
@@ -87,7 +87,7 @@ in
     rustup   # Rustツールチェーンのバージョンマネージャー。uvのPython版に相当
     tig      # gitのTUIフロントエンド。ログやdiffをターミナル上でビジュアルに確認する
     tree     # ディレクトリ構造をツリー形式で表示する
-    typescript # TypeScriptnのコンパイラ(tsc)。.tsを型チェックしてJavascriptに変換する
+    typescript # TypeScriptのコンパイラ(tsc)。.tsを型チェックしてJavaScriptに変換する
     typescript-language-server # tsserverをLSPプロトコルに変換するサーバー。Emacsのeglotから利用する
     uv       # Pythonのパッケージ・仮想環境マネージャー。pipより大幅に高速
     wget     # URLを指定してファイルをダウンロードする
@@ -347,6 +347,19 @@ in
     ;; ファイルバッファの先頭に誤挿入される問題を回避するため、
     ;; ターミナル機能の自動検出（エスケープシーケンス問い合わせ）を無効化する
     (setq xterm-extra-capabilities nil)
+  '';
+
+  # rustup(home.packagesで管理)配下のrustc/cargo/rust-analyzer等の実体
+  # (~/.rustup)はNix管理外のため、新しいMacでは`rustup component add`を
+  # 手動実行しないとrust-analyzerが入らずEmacsのeglotが動かない
+  # (「Unknown binary 'rust-analyzer' in official toolchain」で失敗する)。
+  # switchのたびに自動実行して踏み忘れを防ぐ。ネットワーク不通/社内プロキシ下
+  # でもswitch全体を失敗させたくないため || true で握りつぶす(その場合は
+  # rust-analyzerが入らないまま気付かない可能性があるが、Rustは主目的では
+  # ないため許容する)。ツールチェーン本体(`rustup toolchain install`)は
+  # 新品Macで1.4Gのダウンロードがぶら下がるため、あえて含めない。
+  home.activation.rustComponents = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    $DRY_RUN_CMD ${pkgs.rustup}/bin/rustup component add rust-analyzer rust-src || true
   '';
 
   home.file.".emacs.d/init.el".text = ''
