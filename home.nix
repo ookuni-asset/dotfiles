@@ -244,6 +244,12 @@ in
   '';
 
   home.file.".zshrc".text = ''
+    # macOSがjq等一部のCLIツールを/usr/bin配下に同梱するようになっており、
+    # path_helper(/etc/zprofile)が組み立てるPATHでは/usr/binがNixの
+    # ~/.nix-profile/binより前に来てしまう(Nixでインストールした同名コマンドが
+    # 見えない)。ここで明示的に先頭へ持ってきて、Nix版を優先させる。
+    export PATH="$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin:$PATH"
+
     eval "$(/opt/homebrew/bin/brew shellenv zsh)"
     eval "$(direnv hook zsh)"
     eval "$(fzf --zsh)"
