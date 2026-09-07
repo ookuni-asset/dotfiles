@@ -245,6 +245,104 @@ in
     }
   '';
 
+  # Karabiner-Elements: Emacs風のCtrl+f/b/n/pでカーソルを右/左/下/上に移動できる
+  # ようにする(GUIアプリ全般向け)。ターミナルアプリ(Terminal.app/iTerm2/Ghostty)は
+  # bundle_identifierで除外している。これらの内部ではvimのCtrl+f/b(1画面
+  # スクロール)やless/manのページング等、Ctrl+f/b/n/pに矢印移動とは別の意味が
+  # 既に割り当たっているため、ここで単純な矢印キーに変換すると壊れてしまうため。
+  #
+  # mandatory: ["control"]は左右どちらのControlキーにもマッチする。fromで
+  # 消費したControl修飾はデフォルトでtoには引き継がれない(=Ctrl+Rightのような
+  # ワード送りではなく、素の矢印キー1つ分の移動として送出される)。
+  #
+  # 有効化はKarabiner-Elements側のPreferences → Complex Modifications → Add ruleで
+  # 初回だけ手動で行う(他のComplex Modificationsルールと同様、この「どのルールが
+  # 有効か」という状態自体はNixでは管理しない)。
+  home.file.".config/karabiner/assets/complex_modifications/ctrl-fbnp-cursor-move.json".text = ''
+    {
+      "title": "Ctrl+f/b/n/pでカーソル移動する(ターミナルアプリを除く)",
+      "rules": [
+        {
+          "description": "Ctrl+f/b/n/pを右/左/下/上矢印キーに変換する。Terminal.app/iTerm2/Ghosttyでは無効(vim等のCtrl+f/b/n/pをそのまま使うため)",
+          "manipulators": [
+            {
+              "type": "basic",
+              "from": {
+                "key_code": "f",
+                "modifiers": { "mandatory": ["control"], "optional": ["any"] }
+              },
+              "to": [{ "key_code": "right_arrow" }],
+              "conditions": [
+                {
+                  "type": "frontmost_application_unless",
+                  "bundle_identifiers": [
+                    "^com\\.apple\\.Terminal$",
+                    "^com\\.googlecode\\.iterm2$",
+                    "^com\\.mitchellh\\.ghostty$"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "basic",
+              "from": {
+                "key_code": "b",
+                "modifiers": { "mandatory": ["control"], "optional": ["any"] }
+              },
+              "to": [{ "key_code": "left_arrow" }],
+              "conditions": [
+                {
+                  "type": "frontmost_application_unless",
+                  "bundle_identifiers": [
+                    "^com\\.apple\\.Terminal$",
+                    "^com\\.googlecode\\.iterm2$",
+                    "^com\\.mitchellh\\.ghostty$"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "basic",
+              "from": {
+                "key_code": "n",
+                "modifiers": { "mandatory": ["control"], "optional": ["any"] }
+              },
+              "to": [{ "key_code": "down_arrow" }],
+              "conditions": [
+                {
+                  "type": "frontmost_application_unless",
+                  "bundle_identifiers": [
+                    "^com\\.apple\\.Terminal$",
+                    "^com\\.googlecode\\.iterm2$",
+                    "^com\\.mitchellh\\.ghostty$"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "basic",
+              "from": {
+                "key_code": "p",
+                "modifiers": { "mandatory": ["control"], "optional": ["any"] }
+              },
+              "to": [{ "key_code": "up_arrow" }],
+              "conditions": [
+                {
+                  "type": "frontmost_application_unless",
+                  "bundle_identifiers": [
+                    "^com\\.apple\\.Terminal$",
+                    "^com\\.googlecode\\.iterm2$",
+                    "^com\\.mitchellh\\.ghostty$"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  '';
+
   home.file.".zshrc".text = ''
     # macOSがjq等一部のCLIツールを/usr/bin配下に同梱するようになっており、
     # path_helper(/etc/zprofile)が組み立てるPATHでは/usr/binがNixの
