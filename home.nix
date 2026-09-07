@@ -599,6 +599,12 @@ in
       [keys]
       prefix = "ctrl+z"
 
+      # navigate mode(prefix+w)でのspaces上下移動に、デフォルトの矢印キーへ
+      # 追加してEmacs風のCtrl+n/Ctrl+pでも移動できるようにする。navigate mode中
+      # だけ有効なバインドなので、通常入力中のCtrl+n/Ctrl+pには影響しない。
+      navigate_workspace_up = ["up", "ctrl+p"]
+      navigate_workspace_down = ["down", "ctrl+n"]
+
       # prefix+d: 左claude・中央シェル・右yazi(幅比3:5:2)の3ペイン構成で
       # 新規ワークスペースを作る。shellは検出したままバックグラウンドで
       # 実行され、ペイン自体の起動には関与しない(=herdr-dev-layoutの中で
