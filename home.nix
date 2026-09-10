@@ -449,13 +449,13 @@ in
       epkgs.php-mode
       epkgs.catppuccin-theme # cmuxで使っているテーマ、Catppuccin Mochaに合わせる
       epkgs.corfu           # 補完ポップアップUI
-      epkgs.corfu-terminal  # ターミナルEmacsでcorfuのポップアップを表示するために必要
       epkgs.orderless       # あいまい一致の補完スタイル
       epkgs.cape            # 補完ソース追加(ファイルパス等)
     ];
   };
 
   home.file.".emacs.d/early-init.el".text = ''
+    ;;; -*- lexical-binding: t; -*-
     ;; 一部の端末で、起動時のDA/背景色問い合わせへの応答が
     ;; ファイルバッファの先頭に誤挿入される問題を回避するため、
     ;; ターミナル機能の自動検出（エスケープシーケンス問い合わせ）を無効化する
@@ -476,6 +476,7 @@ in
   '';
 
   home.file.".emacs.d/init.el".text = ''
+    ;;; -*- lexical-binding: t; -*-
     ;; C-h を Backspace に変更
     (global-set-key (kbd "C-h") 'delete-backward-char)
 
@@ -567,10 +568,9 @@ in
           corfu-auto-delay 0.1
           corfu-auto-prefix 1)
 
-    ;; ターミナルEmacs(emacs -nw)ではcorfuのポップアップがGUIの子フレームに
-    ;; 依存するため、corfu-terminal-modeを有効化しないと表示されない
-    (require 'corfu-terminal)
-    (corfu-terminal-mode +1)
+    ;; Emacs 31以降はターミナルでも子フレーム(ポップアップ)がネイティブに
+    ;; 描画できるようになったため、corfu-terminalパッケージ自体が不要になった
+    ;; (読み込むと"corfu-terminal is not needed on Emacs 31"と警告が出る)。
 
     (require 'cape)
     (add-to-list 'completion-at-point-functions #'cape-file)
@@ -682,7 +682,21 @@ in
       macos-option-as-alt = left
 
       # 操作性
-      copy-on-select = true
+      #
+      # copy-on-select(選択と同時に自動コピー)は無効化している。Ghosttyの
+      # 自動コピーは常にplainテキストとHTML(スタイル付き)を同時に
+      # クリップボードへ書き込む(mixed形式)実装になっているが、HTML側は
+      # 各行末の空白トリムが選択範囲の最終行にしか効かないバグがあり、
+      # 途中行の行末に大量の半角スペースが残ってしまう。Emacs上のテキストを
+      # マウス選択してリッチテキスト対応の入力欄(Webのチャット欄等)に
+      # 貼り付けると、この余分な空白がそのまま貼り付けられる原因になっていた。
+      # plain強制のコピー(下のkeybind)に一本化することで回避する。
+      copy-on-select = false
+      # デフォルトの"copy"アクション(右クリックメニュー等)とCmd+Cを、
+      # 上記の理由からHTML付き(mixed)ではなくplainテキストのみのコピーに
+      # 上書きする。選択後はCmd+Cで明示的にコピーする運用になる。
+      keybind = copy=copy_to_clipboard:plain
+      keybind = super+c=copy_to_clipboard:plain
       clipboard-read = allow
       clipboard-write = allow
     '';
