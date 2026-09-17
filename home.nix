@@ -41,6 +41,33 @@ let
     herdr pane run "$p1" claude
     herdr pane run "$p3" yazi
   '';
+
+  # yaziからClaudeへファイルパスを渡すためのスクリプト。本来はドラッグ&ドロップで
+  # 実現したいが、herdr内部ペイン間のドラッグ&ドロップは現状herdr自体に
+  # その機能がなく、Ghostty(外部アプリへのドラッグアウト)側の問題とは別に
+  # herdr側の実装待ちとなっている。
+  #
+  # 代わりに、herdrの socket API(`pane send-text`)でペインIDを直接指定して
+  # 文字列を送り込む。フォーカスの状態に一切依存しないため、
+  # 「ドロップ先ではなくフォーカス中のペインに入ってしまう」問題が起きない。
+  #
+  # 対象のClaudeペインは、レイアウトが「claude/yazi」の2ペインでも
+  # 「claude/emacs/yazi」の3ペインでも(=Claudeペインが隣か2つ隣かが
+  # 変わっても)対応できるよう、hop数を数えるのではなく「同じworkspace内で
+  # agent=claudeのペイン」を`herdr agent list`から検索する方式にしている。
+  # 自分のいるworkspace IDは、herdrがペインの子プロセスに設定する
+  # $HERDR_WORKSPACE_ID環境変数から取得する(フォーカスに依存しない)。
+  yaziSendToClaudeScript = pkgs.writeShellScriptBin "yazi-send-to-claude" ''
+    set -euo pipefail
+
+    path="$1"
+    claude_pane=$(herdr agent list | jq -r --arg ws "''${HERDR_WORKSPACE_ID:-}" \
+      '.result.agents[] | select(.workspace_id == $ws and .agent == "claude") | .pane_id' | head -n1)
+
+    if [ -n "$claude_pane" ]; then
+      herdr pane send-text "$claude_pane" "$path"
+    fi
+  '';
 in
 {
   imports = [ hunkFlake.homeManagerModules.default ];
@@ -80,7 +107,8 @@ in
     gopls    # Go公式のLSPサーバー。Emacsのeglotから利用する
     herdr    # コーディングエージェント向けランタイム。ターミナルを常時稼働させ、どこでもエージェントを実行できる
     herdrDevLayoutScript # herdr prefix+d用: claude/シェル/yaziの3ペインworkspaceを自動生成
-    jq       # JSONを整形・抽出するコマンドラインツール。herdr-dev-layoutがAPI応答のパースに使う
+    yaziSendToClaudeScript # yazi <A-c>用: ホバー中のファイルパスを同じworkspaceのClaudeペインへ送る
+    jq       # JSONを整形・抽出するコマンドラインツール。herdr-dev-layout/yazi-send-to-claudeがAPI応答のパースに使う
     nkf      # 文字コード変換ツール。Shift_JISやEUC-JPなど日本語の文字コードを判定・変換する
     nodejs   # JavaScriptのランタイム。npm/npxも含む
     phpactor # PHPのLSPサーバー。Emacsのeglotから利用する
@@ -421,14 +449,69 @@ in
   };
 
   # yazi: ターミナルファイラー。デフォルトは親ディレクトリ/カレント/プレビューの
-  # 3ペイン表示だが、カレントディレクトリのファイル一覧だけを全幅で表示したいため
-  # ratioで親ペインとプレビューペインの幅を0にする。
+  # 3ペイン表示。親ペインは幅0で非表示にしつつ、カレント一覧とプレビューは
+  # 1:1で表示する。プレビュー幅を0にしていた以前の設定では、ファイルに
+  # カーソルを合わせても中身が見えず、Enterで開くとyaziのUIごと$PAGER(less)に
+  # 置き換わってしまっていた(カーソル移動だけで中身を確認できなかった)ため。
   programs.yazi = {
     enable = true;
     settings = {
       mgr = {
-        ratio = [ 0 1 0 ];
+        ratio = [ 0 1 1 ];
       };
+    };
+    # 普段Emacsを使っており、yazi標準のvim風キー(hjkl)に使いづらさを感じるため、
+    # メイン画面(mgr)にEmacs風のC-f/C-b(左右=ディレクトリの出入り)と
+    # C-n/C-p(上下移動)を追加する。デフォルトのhjklや矢印キーは残したまま、
+    # 追加のエイリアスとして機能する(prepend_keymapはデフォルトを上書きせず
+    # 前段に追加する)。
+    #
+    # トレードオフ: mgr画面のC-f/C-bは元々「1画面分ページスクロール」
+    # (vim/lessと同じ慣習)に割り当てられており、この変更で使えなくなる
+    # (半ページスクロールのC-u/C-dはそのまま残る)。
+    # なお、リネームや検索の入力欄(inputモード)ではyazi自身が元々
+    # C-f/C-b=1文字前後移動、C-n/C-p=履歴の次/前というEmacs風の割り当てを
+    # 採用済みで、今回の変更によりメイン画面もそれと一貫した挙動になる。
+    # yazi標準の<Enter>は「開く(open)」に割り当たっており、ファイルだけでなく
+    # ディレクトリに対しても発動する。ディレクトリの場合、テキスト用opener
+    # (${EDITOR:-vi}、本設定ではEDITOR未設定のためvi)がそのディレクトリを
+    # 開こうとし、Vimの内蔵ファイラーnetrwが全画面表示される
+    # (lessの全画面ページャに見た目が近いため紛らわしい)。
+    # <Right>やlキーの「enter(ディレクトリへ入る)」では発生しない。
+    #
+    # yazi公式のsmart-enterプラグイン(ホバー中の項目がディレクトリなら
+    # enter、ファイルならopenを自動選択する)と同じロジックをネットワーク
+    # 取得なしで直接組み込む。
+    # 出典: https://github.com/yazi-rs/plugins/blob/main/smart-enter.yazi/main.lua
+    plugins = {
+      smart-enter = pkgs.writeTextDir "main.lua" ''
+        --- @since 25.5.31
+        --- @sync entry
+
+        local function setup(self, opts) self.open_multi = opts.open_multi end
+
+        local function entry(self)
+        	local h = cx.active.current.hovered
+        	ya.emit(h and h.cha.is_dir and "enter" or "open", { hovered = not self.open_multi })
+        end
+
+        return { entry = entry, setup = setup }
+      '';
+    };
+    keymap = {
+      mgr.prepend_keymap = [
+        { on = [ "<Enter>" ]; run = "plugin smart-enter"; desc = "Enter the child directory, or open the file"; }
+        { on = [ "<C-f>" ]; run = "enter"; desc = "Enter the child directory (Emacs風)"; }
+        { on = [ "<C-b>" ]; run = "leave"; desc = "Back to the parent directory (Emacs風)"; }
+        { on = [ "<C-n>" ]; run = "arrow next"; desc = "Next file (Emacs風)"; }
+        { on = [ "<C-p>" ]; run = "arrow prev"; desc = "Previous file (Emacs風)"; }
+
+        # ホバー中(または選択中)のファイルの絶対パスを、同じworkspace内の
+        # Claudeペインへフォーカスに関係なく送り込む(yazi-send-to-claudeスクリプト)。
+        # %s1はyazi組み込みのプレースホルダで、ホバー/選択中の先頭1ファイルの
+        # 絶対パスに置換される(open.toml等のopenerルールと同じ記法)。
+        { on = [ "<A-c>" ]; run = "shell 'yazi-send-to-claude %s1'"; desc = "Send hovered file path to this workspace's Claude pane"; }
+      ];
     };
   };
 
